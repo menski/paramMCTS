@@ -11,7 +11,7 @@ import paramMCTS.configuration
 
 
 class TestCallstring(unittest.TestCase):
-    """Test callstring creation and assignment."""
+    """Test Callstring creation and assignment."""
 
     def setUp(self):
         self.callstring = paramMCTS.configuration.Callstring(

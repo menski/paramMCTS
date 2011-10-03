@@ -31,12 +31,17 @@ VAR_NAME = 1
 
 
 class ArgumentError(Exception):
-    """Exception throw during argument assignment for a callstring."""
+    """Exception raised during argument assignment for a callstring."""
     pass
 
 
 class VariableError(Exception):
-    """Exception throw during variable assignment for a callstring."""
+    """Exception raised during variable assignment for a callstring."""
+    pass
+
+
+class InstanceError(Exception):
+    """Exception raised during instance detection."""
     pass
 
 
@@ -46,6 +51,9 @@ class Callstring(object):
     Callstring(callstring, constants=None):
         callstring  : string to parse
         constants   : dictonary of constant values
+
+    assign(assignment)
+        return a assigned callstring
     """
 
     def __init__(self, callstring, constants=None):
