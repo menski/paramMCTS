@@ -8,15 +8,19 @@ master configurations and instance chooser.
 
 classes:
     Callstring
+    InstanceSelector
 
 exceptions:
     ArgumentError
     VariableError
+    InstanceError
 
 """
 
 
 import re
+import os
+import random
 
 
 ARGUMENT_PATTERN = re.compile(
@@ -120,3 +124,50 @@ class Callstring(object):
             raise VariableError('Variable not optional "{0}"'.format(name))
         else:
             return ''
+
+
+class InstanceSelector(object):
+    """Choose a instance from a set of paths.
+
+    InstanceSelector(paths, abspath=True)
+        paths       : list of paths to instances directories
+        abspath     : toogle absolute paths
+
+    random()
+        returns a random selected instance path
+    """
+
+    def __init__(self, paths, abspath=True):
+        self.__instances = None
+        self.__abspath = abspath
+        self._find_instances(paths)
+
+    @property
+    def instances(self):
+        """Return value of instances property."""
+        return self.__instances
+
+    def _find_instances(self, paths):
+        """Set instances to a tuple of instance paths."""
+        def raise_instance_error(err):
+            """Raise InstanceError on error during os.walk."""
+            raise InstanceError('Invalid instance path given "{0}"'.format(
+                    err.filename))
+
+        instances = list()
+        pathfunc = lambda p: os.path.abspath(p) if self.__abspath else p
+        for path in paths:
+            for dirpath, _, filenames in os.walk(path,
+                    onerror=raise_instance_error, followlinks=True):
+                instances += [pathfunc(os.path.join(dirpath, filename))
+                        for filename in filenames]
+        self.__instances = tuple(instances)
+
+    def random(self):
+        """Return a random instances from instances tuple.
+
+        Return None if instances tuple is empty.
+        """
+        if self.instances is not None and self.instances:
+            return random.choice(self.instances)
+        return None

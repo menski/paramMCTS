@@ -38,5 +38,30 @@ class TestCallstring(unittest.TestCase):
                 'instance.lp --number 1 --test=A,B --opt=D1')
 
 
+class TestInstanceSelector(unittest.TestCase):
+    """Test InstanceSelector creation and selection."""
+
+    def setUp(self):
+        paths = ['paramMCTS', 'test']
+        self.abs_selector = paramMCTS.configuration.InstanceSelector(
+                paths, abspath=True)
+        self.rel_selector = paramMCTS.configuration.InstanceSelector(
+                paths, abspath=False)
+        self.automotive_selector = paramMCTS.configuration.InstanceSelector(
+                ['instances/automotive'], abspath=False)
+
+    def test_relativ_paths(self):
+        selection = self.rel_selector.random()
+        self.assertTrue(selection.startswith('paramMCTS') or
+                selection.startswith('test'))
+
+    def test_absolute_paths(self):
+        selection = self.abs_selector.random()
+        self.assertTrue(selection.startswith('/'))
+
+    def test_count(self):
+        self.assertEqual(len(self.automotive_selector.instances), 16)
+
+
 if __name__ == '__main__':
     unittest.main()
