@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+
+"""
+types.py
+
+This module provides classes and functions for ndoes and parameters.
+
+functions:
+    get_param
+
+classes:
+    Node
+"""
+
+import math
+import random
+import sys
+
+PARAM_NAME = 0
+PARAM_VALUES = 1
+PARAM_CONDITIONAL = 2
+
+LEAF_NODE = 0
+LEAF_PATH = 1
+
+PARAM_DICT = dict()
+NODE_DICT = dict()
+
+UCT_C = math.sqrt(2)
+
+EPSILON = sys.float_info.epsilon
+
+
+def get_param(parameter):
+    """Return parameter definition."""
+    return PARAM_DICT[parameter]
+
+
+class Node(tuple):
+    """Save a ordered list of parameters, a set of childs, a value and a visits
+    count.
+
+    Node(parameters=None, save=True)
+        parameters  : ordert list or tuple of parameters
+        save        : save node in NODE_DICT
+
+    def select_leaf(self):
+        return a leaf node for evaluation
+
+    def update(self, value):
+        update all nodes in path with value (also increase visits)
+    """
+
+    def __new__(cls, parameters=None, save=True):
+        if parameters is None:
+            parameters = tuple()
+        node = NODE_DICT.get(frozenset(parameters), None)
+        if node is None:
+            node = tuple.__new__(cls, parameters)
+            node.__childs = None
+            node.__value = 0
+            node.__visits = 0
+            if save:
+                NODE_DICT[frozenset(node)] = node
+        return node
+
+    @property
+    def childs(self):
+        """Return value of childs property."""
+        return self.__childs
+
+    @property
+    def value(self):
+        """Return value of value property."""
+        return self.__value
+
+    @value.setter
+    def value(self, value):
+        """Set value of value property."""
+        self.__value = value
+
+    @property
+    def visits(self):
+        """Return value of visits property."""
+        return self.__visits
+
+    @visits.setter
+    def visits(self, value):
+        """Set value of visits property."""
+        self.__visits = value
+
+    def select_leaf(self):
+        """Return a leaf node for evaluation."""
+        node = self
+        while not node.is_leaf():
+            node = node.select_child()
+        child = node.generate_childs()
+        return (child, child.random_leaf())
+
+    def select_child(self):
+        """Return best child node."""
+        return max(self.childs, key=lambda x: x.uct(self))
+
+    def update(self, value):
+        """Update all nodes in path with value (also increase visits)."""
+        node = self
+        while True:
+            node.value += value
+            node.visits += 1
+            if not node:
+                break
+            node = Node(node[:-1])
+
+    def uct(self, parent):
+        """Return UCT value for node."""
+        visits = self.visits + EPSILON
+        rand = EPSILON * random.random()
+        return self.value / visits + rand + \
+                UCT_C * math.sqrt(math.log(parent.visits + 1) / visits)
+
+    def parameter_satisfied(self, parameter):
+        """Return True if a parameter can be assigned."""
+        if parameter[PARAM_CONDITIONAL] is None:
+            return True
+        for cname, cvalues in parameter[PARAM_CONDITIONAL].items():
+            for cvalue in cvalues:
+                if (cname, cvalue) in self:
+                    break
+            else:
+                return False
+        return True
+
+    def free_parameters(self):
+        """Return a list of free parameters."""
+        assigned_parameters = {param[PARAM_NAME] for param in self}
+        return [param for param in PARAM_DICT.values()
+                if param[PARAM_NAME] not in assigned_parameters
+                and self.parameter_satisfied(param)]
+
+    def generate_childs(self):
+        """Returns a random child after all childs are created.
+
+        Return self if no childs exists.
+
+        """
+        assert self.childs is None, 'Call generate childs only one time'
+
+        free_parameters = self.free_parameters()
+        childs = []
+        for parameter in free_parameters:
+            childs += [self.child((parameter[PARAM_NAME], value))
+                    for value in parameter[PARAM_VALUES]]
+        if childs:
+            self.__childs = frozenset(childs)
+            return random.choice(childs)
+        else:
+            return self
+
+    def child(self, parameter, save=True):
+        """Return child node for a new assigned parameter."""
+        return Node(list(self) + [parameter], save)
+
+    def random_child(self):
+        """Return a random child without creating a new Node."""
+        free_parameters = self.free_parameters()
+        if not free_parameters:
+            return None
+        new_parameter = random.choice(free_parameters)
+        new_value = random.choice(new_parameter[PARAM_VALUES])
+        return self.child((new_parameter[PARAM_NAME], new_value), False)
+
+    def random_leaf(self):
+        """Return random leaf without creating new Nodes."""
+        node = self.random_child()
+        if node is None:
+            return tuple()
+
+        while True:
+            last = node
+            node = node.random_child()
+            if node is None:
+                return tuple(last)
+
+    def is_leaf(self):
+        """Return True if no childs exists."""
+        return self.childs is None
