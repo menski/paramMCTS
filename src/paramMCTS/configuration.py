@@ -156,7 +156,17 @@ class Callstring(object):
 
 
 class ProgramCaller(object):
-    """Save a program path and executes it with given arguments."""
+    """Save a program path and executes it with given arguments.
+
+    ProgramCaller(path, callstring=None, prefix_cmd=None, regex=None)
+        path        : path to executable
+        callstring  : callstring instance for execution
+        prefix_cmd  : command to prefix executable
+        regex       : regex dictonary to match stdout and stderr
+
+    call(assignment, cat=None)
+        return dictonary of matched stdout and stderr
+    """
 
     def __init__(self, path, callstring=None, prefix_cmd=None, regex=None):
         self.__path = path
