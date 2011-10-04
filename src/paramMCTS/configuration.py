@@ -21,6 +21,11 @@ exceptions:
 import re
 import os
 import random
+import gzip
+import bz2
+import tempfile
+import shlex
+import subprocess
 
 
 ARGUMENT_PATTERN = re.compile(
@@ -32,6 +37,25 @@ ARG_NAME = 1
 ARG_VARS = 2
 VAR_OPT = 0
 VAR_NAME = 1
+
+GZIP_MAGIC = b"\x1F\x8B"
+BZIP_MAGIC = b"\x42\x5A"
+
+
+def open_file(filename):
+    """Return context manager for uncompressed, gzip or bzip file."""
+    with open(filename, 'rb') as fin:
+        magic = fin.read(len(GZIP_MAGIC))
+    open_dict = {GZIP_MAGIC: gzip.open, BZIP_MAGIC: bz2.BZ2File}
+    return open_dict.get(magic, open)(filename, 'rb')
+
+
+def convert_regex(regex):
+    """Return compiled regex with conversition of $test$ to (?P<test>\S+)."""
+    if isinstance(regex, str):
+        regex = [regex]
+    return tuple([re.compile(re.sub(
+            r'\$(?P<var>\S+)\$', r'(?P<\g<var>>\S+)', r)) for r in regex])
 
 
 class ArgumentError(Exception):
@@ -46,6 +70,11 @@ class VariableError(Exception):
 
 class InstanceError(Exception):
     """Exception raised during instance detection."""
+    pass
+
+
+class ExecutableError(Exception):
+    """Exception raised if executable is not found or is not executable."""
     pass
 
 
@@ -124,6 +153,109 @@ class Callstring(object):
             raise VariableError('Variable not optional "{0}"'.format(name))
         else:
             return ''
+
+
+class ProgramCaller(object):
+    """Save a program path and executes it with given arguments."""
+
+    def __init__(self, path, callstring=None, prefix_cmd=None, regex=None):
+        self.__path = path
+        self.__callstring = callstring
+        self.__prefix_cmd = prefix_cmd
+        self.__pattern = {'stdout': [], 'stderr': []}
+        if regex is not None:
+            for pipe in ('stdout', 'stderr'):
+                if pipe in regex:
+                    self.__pattern[pipe] = convert_regex(regex[pipe])
+        self._test_executable()
+
+    @property
+    def path(self):
+        """Return value of path property."""
+        return self.__path
+
+    @property
+    def callstring(self):
+        """Return value of callstring property."""
+        return self.__callstring
+
+    @callstring.setter
+    def callstring(self, value):
+        """Set value of callstring property."""
+        self.__callstring = value
+
+    @property
+    def prefix_cmd(self):
+        """Return value of prefix_cmd property."""
+        return self.__prefix_cmd
+
+    @prefix_cmd.setter
+    def prefix_cmd(self, value):
+        """Set value of prefix_cmd property."""
+        self.__prefix_cmd = value
+
+    @property
+    def pattern(self):
+        """Return value of pattern property."""
+        return self.__pattern
+
+    def _test_executable(self):
+        """Test if path exists, is a file and is executable.
+
+        If not a ExecutableError exception is raised.
+
+        """
+        if not os.path.exists(self.__path):
+            raise ExecutableError('Unable to find executable "{0}"'.format(
+                self.__path))
+        if not os.path.isfile(self.__path):
+            raise ExecutableError('Path "{0}" is not a file'.format(
+                self.__path))
+        if not os.access(self.__path, os.X_OK):
+            raise ExecutableError('File "{0}" is not executable'.format(
+                self.__path))
+
+    def call(self, assignment, cat=None):
+        """Return regex matches from stdout and stderr of called program.
+
+        Calls the program, prefixed with prefix_cmd if given and cat files
+        to tempfiles if needed (e.g. compress files). After the execution
+        the stdout_regex and stderr_regex lists are matched agains the
+        stdout and stderr of the program. The result is a dict with the
+        keys "stdout" and "stderr".
+
+        - assignment    : assignment for callstring
+        - cat           : attribut name of assignment to cat into a tempfile
+
+        """
+        assert self.callstring is not None, 'callstring has to be given'
+        if cat is not None:
+            with open_file(assignment[cat]) as fin, \
+                    tempfile.NamedTemporaryFile(mode='wb', prefix='paramMCTS_',
+                    delete=False) as fout:
+                fout.write(fin.read())
+                assignment[cat] = fout.name
+        callstring = ' '.join([cstr for cstr in
+            [self.prefix_cmd, self.path, self.callstring.assign(assignment)]
+            if cstr is not None])
+        args = shlex.split(callstring)
+
+        with subprocess.Popen(args, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE) as proc:
+            (stdout, stderr) = proc.communicate()
+
+        if cat is not None:
+            os.remove(assignment[cat])
+        result = {'stdout': {}, 'stderr': {}}
+        for regex in self.pattern['stdout']:
+            match = regex.search(stdout.decode('utf8'))
+            if match:
+                result['stdout'].update(match.groupdict())
+        for regex in self.pattern['stderr']:
+            match = regex.search(stderr.decode('utf8'))
+            if match:
+                result['stderr'].update(match.groupdict())
+        return result
 
 
 class InstanceSelector(object):

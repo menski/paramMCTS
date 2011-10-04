@@ -63,5 +63,55 @@ class TestInstanceSelector(unittest.TestCase):
         self.assertEqual(len(self.automotive_selector.instances), 16)
 
 
+class TestProgramCaller(unittest.TestCase):
+    """Test ProgramCaller execution."""
+
+    def setUp(self):
+        self.callstring = paramMCTS.configuration.Callstring(
+                '$instance$ --number $num$', {'num': 1})
+        self.prefix_cmd = ' '.join(['bin/runsolver', '-M 300', '-W 30',
+                '-w run.watcher'])
+        self.instance_selector = paramMCTS.configuration.InstanceSelector(
+                ['instances/automotive'], abspath=False)
+
+    def test_executable(self):
+        with self.assertRaises(paramMCTS.configuration.ExecutableError):
+            paramMCTS.configuration.ProgramCaller('prg_not_exists')
+
+        with self.assertRaises(paramMCTS.configuration.ExecutableError):
+            paramMCTS.configuration.ProgramCaller('paramMCTS/configuration.py')
+
+        paramMCTS.configuration.ProgramCaller('test/test_configuration.py')
+
+    def test_regex(self):
+        caller = paramMCTS.configuration.ProgramCaller('bin/clasp',
+                regex={'stdout': 'Time    : $time$s'})
+        self.assertEqual(caller.pattern['stdout'][0].pattern,
+                r'Time    : (?P<time>\S+)s')
+        self.assertCountEqual(caller.pattern['stderr'], [])
+
+    def test_execution(self):
+        caller = paramMCTS.configuration.ProgramCaller('bin/clasp',
+                callstring=self.callstring, prefix_cmd=self.prefix_cmd,
+                regex={'stdout': ['CPU Time    : $time$s',
+                    'INTERRUPTED : $interrupted$']})
+        result = caller.call({'instance': self.instance_selector.random()},
+                cat='instance')
+        self.assertCountEqual(result['stderr'], [])
+        self.assertIn('time', result['stdout'])
+        self.assertNotIn('interrupted', result['stdout'])
+
+        self.prefix_cmd = ' '.join(['bin/runsolver', '-M 1', '-W 1',
+                '-w run.watcher'])
+        caller.prefix_cmd = self.prefix_cmd
+        result = caller.call(
+                {'instance': 'instances/automotive/0_0_1_2_0.0.bz2'},
+                cat='instance')
+        self.assertCountEqual(result['stderr'], [])
+        self.assertIn('time', result['stdout'])
+        self.assertIn('interrupted', result['stdout'])
+        self.assertEqual(result['stdout']['interrupted'], '1')
+
+
 if __name__ == '__main__':
     unittest.main()
