@@ -6,14 +6,20 @@ configuration.py
 This module provides classes for callstrings, worker configurations,
 master configurations and instance chooser.
 
+functions:
+    open_file
+    convert_regex
+
 classes:
     Callstring
+    ProgramCaller
     InstanceSelector
 
 exceptions:
     ArgumentError
     VariableError
     InstanceError
+    ExecutableError
 
 """
 
