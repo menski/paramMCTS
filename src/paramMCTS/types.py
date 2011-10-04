@@ -6,7 +6,9 @@ types.py
 This module provides classes and functions for ndoes and parameters.
 
 functions:
-    get_param
+    add_parameter
+    get_parameter
+    get_parameters
 
 classes:
     Node
@@ -18,7 +20,7 @@ import sys
 
 PARAM_NAME = 0
 PARAM_VALUES = 1
-PARAM_CONDITIONAL = 2
+PARAM_CONDITION = 2
 
 LEAF_NODE = 0
 LEAF_PATH = 1
@@ -31,9 +33,19 @@ UCT_C = math.sqrt(2)
 EPSILON = sys.float_info.epsilon
 
 
-def get_param(parameter):
+def add_parameter(name, values, condition=None):
+    """Add parameter definition."""
+    PARAM_DICT[name] = (name, values, condition)
+
+
+def get_parameter(parameter):
     """Return parameter definition."""
     return PARAM_DICT[parameter]
+
+
+def get_parameters():
+    """Return all parameters."""
+    return PARAM_DICT.values()
 
 
 class Node(tuple):
@@ -120,9 +132,9 @@ class Node(tuple):
 
     def parameter_satisfied(self, parameter):
         """Return True if a parameter can be assigned."""
-        if parameter[PARAM_CONDITIONAL] is None:
+        if parameter[PARAM_CONDITION] is None:
             return True
-        for cname, cvalues in parameter[PARAM_CONDITIONAL].items():
+        for cname, cvalues in parameter[PARAM_CONDITION].items():
             for cvalue in cvalues:
                 if (cname, cvalue) in self:
                     break
@@ -133,7 +145,7 @@ class Node(tuple):
     def free_parameters(self):
         """Return a list of free parameters."""
         assigned_parameters = {param[PARAM_NAME] for param in self}
-        return [param for param in PARAM_DICT.values()
+        return [param for param in get_parameters()
                 if param[PARAM_NAME] not in assigned_parameters
                 and self.parameter_satisfied(param)]
 

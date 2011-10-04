@@ -14,9 +14,9 @@ class TestNode(unittest.TestCase):
     """Test Node creation and child generation."""
 
     def setUp(self):
-        types.PARAM_DICT['a'] = ('a', (1, 2), None)
-        types.PARAM_DICT['b'] = ('b', ('a', 'b'), {'a': (1, 2)})
-        types.PARAM_DICT['c'] = ('c', (True, False), {'a': [2], 'b': ['a']})
+        types.add_parameter('a', (1, 2), None)
+        types.add_parameter('b', ('a', 'b'), {'a': (1, 2)})
+        types.add_parameter('c', (True, False), {'a': [2], 'b': ['a']})
         types.NODE_DICT.clear()
 
     def test_node_creation(self):
