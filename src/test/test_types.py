@@ -2,6 +2,7 @@
 
 import sys
 import os
+import random
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
@@ -75,11 +76,11 @@ class TestNode(unittest.TestCase):
 
     def test_dot(self):
         root = types.Node()
-        import random
         for i in range(10):
             leaf = root.select_leaf()
             leaf[types.LEAF_NODE].update(random.randint(1,10))
         root.to_dot(filename="test.dot")
+        os.system("dot -Teps test.dot -o test.eps")
 
 
 if __name__ == '__main__':

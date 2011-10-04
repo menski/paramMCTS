@@ -32,7 +32,7 @@ UCT_C = math.sqrt(2)
 
 EPSILON = sys.float_info.epsilon
 
-GRAPH_TEMPLATE = 'digraph "paramMCTS" {{\nshape=box;\n{0}\n}}'
+GRAPH_TEMPLATE = 'digraph "paramMCTS" {{\nnode [shape=box];\n{0}\n}}'
 
 
 def add_parameter(name, values, condition=None):
