@@ -73,6 +73,14 @@ class TestNode(unittest.TestCase):
         self.assertEqual(leaf2[types.LEAF_NODE][0][types.PARAM_NAME], "a")
         self.assertNotEqual(leaf, leaf2)
 
+    def test_dot(self):
+        root = types.Node()
+        import random
+        for i in range(10):
+            leaf = root.select_leaf()
+            leaf[types.LEAF_NODE].update(random.randint(1,10))
+        root.to_dot(filename="test.dot")
+
 
 if __name__ == '__main__':
     unittest.main()

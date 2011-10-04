@@ -32,6 +32,8 @@ UCT_C = math.sqrt(2)
 
 EPSILON = sys.float_info.epsilon
 
+GRAPH_TEMPLATE = 'digraph "paramMCTS" {{\nshape=box;\n{0}\n}}'
+
 
 def add_parameter(name, values, condition=None):
     """Add parameter definition."""
@@ -49,8 +51,7 @@ def get_parameters():
 
 
 class Node(tuple):
-    """Save a ordered list of parameters, a set of childs, a value and a visits
-    count.
+    """Save a ordered list of parameters, a set of childs, a value and visits.
 
     Node(parameters=None, save=True)
         parameters  : ordert list or tuple of parameters
@@ -183,10 +184,7 @@ class Node(tuple):
 
     def random_leaf(self):
         """Return random leaf without creating new Nodes."""
-        node = self.random_child()
-        if node is None:
-            return tuple()
-
+        node = self
         while True:
             last = node
             node = node.random_child()
@@ -196,3 +194,23 @@ class Node(tuple):
     def is_leaf(self):
         """Return True if no childs exists."""
         return self.childs is None
+
+    def to_dot(self, filename=None):
+        """Create dot graph and returns it (optional save it to a file)."""
+        graph = GRAPH_TEMPLATE.format(self.dot_string())
+        if filename is not None:
+            with open(filename, 'w') as fout:
+                fout.write(graph)
+        return graph
+
+    def dot_string(self):
+        """Return string in dot language."""
+        name = hash(self)
+        label = '{0} [label="{1}\\nvalue:{1.value}' \
+                '  visits:{1.visits}"]'.format(name, self)
+        if self.is_leaf():
+            return label
+
+        return '{0}\n{1} -> {{{2}}}\n{3}'.format(label, name,
+                '; '.join([str(hash(child)) for child in self.childs]),
+                '\n'.join([child.dot_string() for child in self.childs]))
