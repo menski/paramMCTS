@@ -92,6 +92,9 @@ class TestJsonInput(unittest.TestCase):
     def setUp(self):
         self.json_file = 'etc/hal-clasp.json'
 
+    def tearDown(self):
+        types.clear()
+
     def test_read(self):
         cfg = configuration.read_hal_json(self.json_file)
         l = len(types.get_parameters())

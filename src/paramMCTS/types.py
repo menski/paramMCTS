@@ -1,11 +1,10 @@
-#!/usr/bin/env python3
-
 """
 types.py
 
 This module provides classes and functions for ndoes and parameters.
 
 functions:
+    clear
     add_parameter
     get_parameter
     get_parameters
@@ -33,6 +32,12 @@ UCT_C = math.sqrt(2)
 EPSILON = sys.float_info.epsilon
 
 GRAPH_TEMPLATE = 'digraph "paramMCTS" {{\nnode [shape=box];\n{0}\n}}'
+
+
+def clear():
+    """Clear state and remove all nodes and parameters."""
+    PARAM_DICT.clear()
+    NODE_DICT.clear()
 
 
 def add_parameter(name, values, condition=None):

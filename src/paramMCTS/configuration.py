@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 configuration.py
 
@@ -322,7 +320,7 @@ class ProgramCaller(object):
 class InstanceSelector(object):
     """Choose a instance from a set of paths.
 
-    InstanceSelector(paths, abspath=True)
+    InstanceSelector(paths, variable, abspath=False)
         paths       : list of paths to instances directories
         variable    : variable name in callstring
         abspath     : toogle absolute paths
@@ -331,7 +329,7 @@ class InstanceSelector(object):
         returns a random selected instance path
     """
 
-    def __init__(self, paths, variable, abspath=True):
+    def __init__(self, paths, variable, abspath=False):
         self.__instances = None
         self.__variable = variable
         self.__abspath = abspath
