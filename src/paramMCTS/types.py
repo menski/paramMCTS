@@ -37,7 +37,7 @@ GRAPH_TEMPLATE = 'digraph "paramMCTS" {{\nnode [shape=box];\n{0}\n}}'
 
 def add_parameter(name, values, condition=None):
     """Add parameter definition."""
-    PARAM_DICT[name] = (name, values, condition)
+    PARAM_DICT[name] = (name, tuple(values), condition)
 
 
 def get_parameter(parameter):

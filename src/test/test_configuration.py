@@ -7,35 +7,7 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 import unittest
 
-import paramMCTS.configuration
-
-
-class TestCallstring(unittest.TestCase):
-    """Test Callstring creation and assignment."""
-
-    def setUp(self):
-        self.callstring = paramMCTS.configuration.Callstring(
-                '$ins-file$ --number $num$ --test=$a$,$b$[,$c$] [--opt=$d1$]',
-                {'num': 1})
-
-    def test_assignment(self):
-        assignment = {'ins-file': 'instance.lp'}
-        with self.assertRaises(paramMCTS.configuration.VariableError):
-            self.callstring.assign(assignment)
-
-        assignment['a'] = ''
-        assignment['b'] = ''
-        with self.assertRaises(paramMCTS.configuration.ArgumentError):
-            self.callstring.assign(assignment)
-
-        assignment['a'] = 'A'
-        assignment['b'] = 'B'
-        self.assertEqual(self.callstring.assign(assignment),
-                'instance.lp --number 1 --test=A,B')
-
-        assignment['d1'] = 'D1'
-        self.assertEqual(self.callstring.assign(assignment),
-                'instance.lp --number 1 --test=A,B --opt=D1')
+from paramMCTS import configuration, types
 
 
 class TestInstanceSelector(unittest.TestCase):
@@ -43,12 +15,12 @@ class TestInstanceSelector(unittest.TestCase):
 
     def setUp(self):
         paths = ['paramMCTS', 'test']
-        self.abs_selector = paramMCTS.configuration.InstanceSelector(
-                paths, abspath=True)
-        self.rel_selector = paramMCTS.configuration.InstanceSelector(
-                paths, abspath=False)
-        self.automotive_selector = paramMCTS.configuration.InstanceSelector(
-                ['instances/automotive'], abspath=False)
+        self.abs_selector = configuration.InstanceSelector(
+                paths, 'instance', abspath=True)
+        self.rel_selector = configuration.InstanceSelector(
+                paths, 'instance', abspath=False)
+        self.automotive_selector = configuration.InstanceSelector(
+                ['instances/automotive'], 'instance', abspath=False)
 
     def test_relativ_paths(self):
         selection = self.rel_selector.random()
@@ -67,36 +39,37 @@ class TestProgramCaller(unittest.TestCase):
     """Test ProgramCaller execution."""
 
     def setUp(self):
-        self.callstring = paramMCTS.configuration.Callstring(
+        self.callstring = configuration.Callstring(
                 '$instance$ --number $num$', {'num': 1})
         self.prefix_cmd = ' '.join(['bin/runsolver', '-M 300', '-W 30',
                 '-w run.watcher'])
-        self.instance_selector = paramMCTS.configuration.InstanceSelector(
-                ['instances/automotive'], abspath=False)
+        self.instance_selector = configuration.InstanceSelector(
+                ['instances/automotive'], 'instance', abspath=False)
 
     def test_executable(self):
-        with self.assertRaises(paramMCTS.configuration.ExecutableError):
-            paramMCTS.configuration.ProgramCaller('prg_not_exists')
+        with self.assertRaises(configuration.ExecutableError):
+            configuration.ProgramCaller('prg_not_exists')
 
-        with self.assertRaises(paramMCTS.configuration.ExecutableError):
-            paramMCTS.configuration.ProgramCaller('paramMCTS/configuration.py')
+        with self.assertRaises(configuration.ExecutableError):
+            configuration.ProgramCaller('paramMCTS/configuration.py')
 
-        paramMCTS.configuration.ProgramCaller('test/test_configuration.py')
+        configuration.ProgramCaller('test/test_configuration.py')
 
     def test_regex(self):
-        caller = paramMCTS.configuration.ProgramCaller('bin/clasp',
+        caller = configuration.ProgramCaller('bin/clasp',
                 regex={'stdout': 'Time    : $time$s'})
         self.assertEqual(caller.pattern['stdout'][0].pattern,
                 r'Time    : (?P<time>\S+)s')
         self.assertCountEqual(caller.pattern['stderr'], [])
 
     def test_execution(self):
-        caller = paramMCTS.configuration.ProgramCaller('bin/clasp',
+        caller = configuration.ProgramCaller('bin/clasp',
                 callstring=self.callstring, prefix_cmd=self.prefix_cmd,
                 regex={'stdout': ['CPU Time    : $time$s',
                     'INTERRUPTED : $interrupted$']})
-        result = caller.call({'instance': self.instance_selector.random()},
-                cat='instance')
+        result = caller.call({self.instance_selector.variable:
+                self.instance_selector.random()},
+                cat=self.instance_selector.variable)
         self.assertCountEqual(result['stderr'], [])
         self.assertIn('time', result['stdout'])
         self.assertNotIn('interrupted', result['stdout'])
@@ -111,6 +84,38 @@ class TestProgramCaller(unittest.TestCase):
         self.assertIn('time', result['stdout'])
         self.assertIn('interrupted', result['stdout'])
         self.assertEqual(result['stdout']['interrupted'], '1')
+
+
+class TestJsonInput(unittest.TestCase):
+    """Test json input parsing."""
+
+    def setUp(self):
+        self.json_file = 'etc/hal-clasp.json'
+
+    def test_read(self):
+        cfg = configuration.read_hal_json(self.json_file)
+        l = len(types.get_parameters())
+        self.assertEqual(l, 34)
+
+        p = types.get_parameter('backprop')
+        self.assertEqual(p[types.PARAM_NAME], 'backprop')
+        self.assertTupleEqual(p[types.PARAM_VALUES], tuple(["yes", "no"]))
+        self.assertIsNone(p[types.PARAM_CONDITION])
+
+        p = types.get_parameter('recursive-str')
+        self.assertTupleEqual(p[types.PARAM_VALUES], tuple(["yes", "no"]))
+        self.assertIsNotNone(p[types.PARAM_CONDITION])
+        self.assertDictEqual(p[types.PARAM_CONDITION], {'strengthen':
+                frozenset(["bin", "tern", "yes"])})
+
+        self.assertEqual(cfg['instance_variable'], 'instanceFile')
+
+        caller = cfg['program_caller']
+        self.assertEqual(caller.path, 'bin/clasp')
+        self.assertEqual(caller.pattern['stdout'][0].pattern,
+                r'CPU Time    : (?P<time>\S+)s')
+        callstring = caller.callstring
+        self.assertDictEqual(callstring.constants, {'num': 1, 'seed': 1})
 
 
 if __name__ == '__main__':

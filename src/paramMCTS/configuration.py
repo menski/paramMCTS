@@ -3,12 +3,13 @@
 """
 configuration.py
 
-This module provides classes for callstrings, worker configurations,
-master configurations and instance chooser.
+This module provides classes for callstrings, progammcaller and instance
+chooser.
 
 functions:
     open_file
     convert_regex
+    read_hal_json
 
 classes:
     Callstring
@@ -32,6 +33,9 @@ import bz2
 import tempfile
 import shlex
 import subprocess
+import json
+
+import paramMCTS.types
 
 
 ARGUMENT_PATTERN = re.compile(
@@ -62,6 +66,47 @@ def convert_regex(regex):
         regex = [regex]
     return tuple([re.compile(re.sub(
             r'\$(?P<var>\S+)\$', r'(?P<\g<var>>\S+)', r)) for r in regex])
+
+
+def read_hal_json(filename):
+    """Return dictonary with important elements from hal output file."""
+    with open(filename, 'r') as fin:
+        config = json.load(fin)[0]
+
+    result = dict()
+
+    # Read configuration space
+    # 1. parse conditionals
+    # 2. add parameters
+    space = config['configurationSpace']
+    conditionals = {parameter: {depends: frozenset(items['items']) for
+            depends, items in definition[0].items()} for parameter, definition
+            in space['conditionals'].items()}
+
+    for parameter, definition in space["parameters"].items():
+        paramMCTS.types.add_parameter(parameter, definition["items"],
+                conditionals.get(parameter, None))
+
+    # Read scenario space
+    # 1. parse constants
+    space = config['scenarioSpace']['parameters']
+    constants = dict()
+    constants['num'] = space['num']['default']
+    constants['seed'] = space['seed']['default']
+
+    # Read implementation
+    # 1. read instance file variable name
+    # 2. create Callstring
+    # 3. create ProgramCaller
+    space = config['implementation']
+    result['instance_variable'] = space['instanceSpace']['semantics'][
+            'INSTANCE_FILE']
+    callstring = Callstring(space['inputFormat']['callstring'][0],
+            constants)
+    result['program_caller'] = ProgramCaller(space['executable'], callstring,
+            regex=space['outputFormat'])
+
+    return result
 
 
 class ArgumentError(Exception):
@@ -279,14 +324,16 @@ class InstanceSelector(object):
 
     InstanceSelector(paths, abspath=True)
         paths       : list of paths to instances directories
+        variable    : variable name in callstring
         abspath     : toogle absolute paths
 
     random()
         returns a random selected instance path
     """
 
-    def __init__(self, paths, abspath=True):
+    def __init__(self, paths, variable, abspath=True):
         self.__instances = None
+        self.__variable = variable
         self.__abspath = abspath
         self._find_instances(paths)
 
@@ -294,6 +341,11 @@ class InstanceSelector(object):
     def instances(self):
         """Return value of instances property."""
         return self.__instances
+
+    @property
+    def variable(self):
+        """Return value of variable property."""
+        return self.__variable
 
     def _find_instances(self, paths):
         """Set instances to a tuple of instance paths."""
