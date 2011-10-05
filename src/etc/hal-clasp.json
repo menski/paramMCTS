@@ -1,0 +1,510 @@
+[{
+  "classname": "ca.ubc.cs.beta.hal.algorithms.ParameterizedAlgorithm",
+  "implementation":   {
+    "classname": "ca.ubc.cs.beta.hal.algorithms.ExternalAlgorithmImplementation",
+    "name": "claspDiscrete6",
+    "executable": "bin/clasp",
+    "workingdir": ".",
+    "tags": [["asp"]],
+    "inputFormat": {"callstring": ["$instanceFile$ --number $num$ --solution-recording=$solution-recording$ --restart-on-model=$restart-on-model$ --trans-ext=$trans-ext$ --eq=$eq$ --backprop=$backprop$ --sat-prepro=$sat-p1$[,$sat-p2$][,$sat-p3$][,$sat-p4$][,$sat-p5$] --lookahead=$lookahead$ --initial-lookahead=$initial-lookahead$ --heuristic=$heuristic$ --rand-freq=$rand-freq$ --rand-prob=$rand-prob1$[,$rand-prob2$] --rand-watches=$rand-watches$ --seed=$seed$ --restarts=$restarts1$[,$restarts2$][,$restarts3$] --local-restarts=$local-restarts$ --bounded-restarts=$bounded-restarts$ --reset-restarts=$reset-restart$ --save-progress=$save-progress$ --shuffle=$shuffle1$[,$shuffle2$] --deletion=$deletion1$,$deletion2$,$deletion3$ --reduce-on-restart=$reduce-on-restart$ --strengthen=$strengthen$ [--recursive-str=$recursive-str$] --loops=$loops$ --contraction=$contraction$"]},
+    "outputFormat":     {
+      "stderr": [],
+      "stdout": ["CPU Time    : $time$s"]
+    },
+    "instanceSpace":     {
+      "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.ParameterSpaceImpl",
+      "parameters": {"instanceFile":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.FileDomain",
+        "restriction": "EXISTS"
+      }},
+      "semantics": {"INSTANCE_FILE": "instanceFile"}
+    },
+    "properties":     {
+      "DETERMINISTIC": false,
+      "cutoffAgnostic": true,
+      "exportable": false
+    }
+  },
+  "scenarioSpace":   {
+    "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.ParameterSpaceImpl",
+    "parameters":     {
+      "MAX_CPUTIME":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.RealDomain",
+        "default": 1.7976931348623157E308,
+        "range":         [
+          0,
+          "inf"
+        ]
+      },
+      "instanceFile":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.FileDomain",
+        "restriction": "EXISTS"
+      },
+      "num":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.IntegerDomain",
+        "default": 1,
+        "range":         [
+          0,
+          "inf"
+        ]
+      },
+      "seed":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.IntegerDomain",
+        "default": 1,
+        "range":         [
+          1,
+          2147483647
+        ]
+      }
+    },
+    "semantics":     {
+      "MAX_RUNLENGTH": "num",
+      "SEED": "seed"
+    }
+  },
+  "outputSpace":   {
+    "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.ParameterSpaceImpl",
+    "parameters": {"time":     {
+      "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.RealDomain",
+      "default": 0,
+      "range":       [
+        0,
+        "inf"
+      ]
+    }},
+    "semantics": {"CPUTIME": "time"}
+  },
+  "configurationSpace":   {
+    "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.ParameterSpaceImpl",
+    "parameters":     {
+      "backprop":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "no",
+        "items":         [
+          "yes",
+          "no"
+        ]
+      },
+      "bounded-restarts":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "no",
+        "items":         [
+          "yes",
+          "no"
+        ]
+      },
+      "contraction":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "250",
+        "items":         [
+          "0",
+          "80",
+          "120",
+          "200",
+          "250",
+          "500"
+        ]
+      },
+      "deletion1":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "3.0",
+        "items":         [
+          "0.5",
+          "1.0",
+          "1.5",
+          "2.0",
+          "3.0",
+          "4.0",
+          "5.0",
+          "10.0",
+          "100.0"
+        ]
+      },
+      "deletion2":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "1.0",
+        "items":         [
+          "1.0",
+          "1.1",
+          "1.2",
+          "1.3"
+        ]
+      },
+      "deletion3":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "3.0",
+        "items":         [
+          "1.0",
+          "2.0",
+          "3.0",
+          "10.0",
+          "1000.0"
+        ]
+      },
+      "eq":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "5",
+        "items":         [
+          "5",
+          "-1",
+          "0",
+          "1"
+        ]
+      },
+      "heuristic":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "Berkmin",
+        "items":         [
+          "Berkmin",
+          "Vmtf",
+          "Vsids",
+          "Unit",
+          "None"
+        ]
+      },
+      "initial-lookahead":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "-1",
+        "items":         [
+          "-1",
+          "0",
+          "5",
+          "10",
+          "100",
+          "1000"
+        ]
+      },
+      "local-restarts":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "no",
+        "items":         [
+          "yes",
+          "no"
+        ]
+      },
+      "lookahead":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "no",
+        "items":         [
+          "atom",
+          "body",
+          "hybrid",
+          "no"
+        ]
+      },
+      "loops":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "common",
+        "items":         [
+          "common",
+          "distinct",
+          "shared",
+          "no"
+        ]
+      },
+      "rand-freq":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "0.0",
+        "items":         [
+          "0.0",
+          "0.02",
+          "0.05",
+          "0.1"
+        ]
+      },
+      "rand-prob1":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "0",
+        "items":         [
+          "0",
+          "10",
+          "20",
+          "50"
+        ]
+      },
+      "rand-prob2":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "0",
+        "items":         [
+          "0",
+          "10",
+          "20",
+          "50"
+        ]
+      },
+      "rand-watches":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "yes",
+        "items":         [
+          "yes",
+          "no"
+        ]
+      },
+      "recursive-str":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "no",
+        "items":         [
+          "yes",
+          "no"
+        ]
+      },
+      "reduce-on-restart":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "no",
+        "items":         [
+          "yes",
+          "no"
+        ]
+      },
+      "reset-restart":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "no",
+        "items":         [
+          "yes",
+          "no"
+        ]
+      },
+      "restart-on-model":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "no",
+        "items":         [
+          "yes",
+          "no"
+        ]
+      },
+      "restarts1":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "100",
+        "items":         [
+          "32",
+          "128",
+          "256",
+          "100",
+          "500",
+          "4096",
+          "16384"
+        ]
+      },
+      "restarts2":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "1.5",
+        "items":         [
+          "0.0",
+          "1.5",
+          "1.1",
+          "1.2"
+        ]
+      },
+      "restarts3":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "0.0",
+        "items":         [
+          "0.0",
+          "1000",
+          "10000",
+          "40000"
+        ]
+      },
+      "sat-p1":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "20",
+        "items":         [
+          "-1",
+          "0",
+          "10",
+          "20",
+          "50"
+        ]
+      },
+      "sat-p2":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "25",
+        "items":         [
+          "-1",
+          "10",
+          "25",
+          "50"
+        ]
+      },
+      "sat-p3":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "120",
+        "items":         [
+          "60",
+          "120",
+          "240",
+          "500"
+        ]
+      },
+      "sat-p4":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "-1",
+        "items":         [
+          "-1",
+          "50",
+          "75"
+        ]
+      },
+      "sat-p5":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "1",
+        "items":         [
+          "0",
+          "1"
+        ]
+      },
+      "save-progress":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "0",
+        "items":         [
+          "0",
+          "1",
+          "5",
+          "10"
+        ]
+      },
+      "shuffle1":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "0",
+        "items":         [
+          "0",
+          "5",
+          "10",
+          "20"
+        ]
+      },
+      "shuffle2":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "0",
+        "items":         [
+          "0",
+          "1",
+          "5",
+          "10",
+          "20"
+        ]
+      },
+      "solution-recording":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "no",
+        "items":         [
+          "yes",
+          "no"
+        ]
+      },
+      "strengthen":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "yes",
+        "items":         [
+          "bin",
+          "tern",
+          "yes",
+          "no"
+        ]
+      },
+      "trans-ext":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "no",
+        "items":         [
+          "all",
+          "choice",
+          "card",
+          "weight",
+          "integ",
+          "dynamic",
+          "no"
+        ]
+      }
+    },
+    "conditionals":     {
+      "rand-prob2": [{"rand-prob1":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "10",
+        "items":         [
+          "10",
+          "20",
+          "50"
+        ]
+      }}],
+      "recursive-str": [{"strengthen":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "bin",
+        "items":         [
+          "bin",
+          "tern",
+          "yes"
+        ]
+      }}],
+      "restarts2": [{"restarts1":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "32",
+        "items":         [
+          "32",
+          "128",
+          "256",
+          "100",
+          "500"
+        ]
+      }}],
+      "restarts3": [{"restarts2":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "1.5",
+        "items":         [
+          "1.5",
+          "1.1",
+          "1.2"
+        ]
+      }}],
+      "sat-p2": [{"sat-p1":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "-1",
+        "items":         [
+          "-1",
+          "10",
+          "20",
+          "50"
+        ]
+      }}],
+      "sat-p3": [{"sat-p1":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "-1",
+        "items":         [
+          "-1",
+          "10",
+          "20",
+          "50"
+        ]
+      }}],
+      "sat-p4": [{"sat-p1":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "-1",
+        "items":         [
+          "-1",
+          "10",
+          "20",
+          "50"
+        ]
+      }}],
+      "sat-p5": [{"sat-p1":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "-1",
+        "items":         [
+          "-1",
+          "10",
+          "20",
+          "50"
+        ]
+      }}],
+      "shuffle2": [{"shuffle1":       {
+        "classname": "ca.ubc.cs.beta.hal.algorithms.parameters.CategoricalDomain",
+        "default": "5",
+        "items":         [
+          "5",
+          "10",
+          "20"
+        ]
+      }}]
+    }
+  },
+  "name": "claspDiscrete6 default"
+}]
