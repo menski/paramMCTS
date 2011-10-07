@@ -5,12 +5,9 @@ This module provides classes and functions for ndoes and parameters.
 
 functions:
     clear
-    add_parameter
-    get_parameter
-    get_parameters
-    get_nodes
 
 classes:
+    Parameter
     Node
 """
 
@@ -26,6 +23,12 @@ UCT_C = math.sqrt(2)
 EPSILON = sys.float_info.epsilon
 
 GRAPH_TEMPLATE = 'digraph "paramMCTS" {{\nnode [shape=box];\n{0}\n}}'
+
+
+def clear():
+    """Clear all internal storages."""
+    Parameter.clear_storage()
+    Node.clear_storage()
 
 
 class Parameter(object):
@@ -63,6 +66,10 @@ class Parameter(object):
         """Return value of condition property."""
         return self.__condition
 
+    def __str__(self):
+        """Return string representation."""
+        return '({0.name}={0.values}|cond: {0.condition})'.format(self)
+
     @classmethod
     def clear_storage(cls):
         """Clear internal parameter storage."""
@@ -74,37 +81,78 @@ class Parameter(object):
         return cls.__storage.values()
 
 
+class Assignment(object):
+    """Assignment of a parameter."""
+
+    __slots__ = ['__name', '__value']
+
+    def __init__(self, name, value):
+        self.__name = name
+        self.__value = value
+
+    @property
+    def name(self):
+        """Return value of name property."""
+        return self.__name
+
+    @property
+    def value(self):
+        """Return value of value property."""
+        return self.__value
+
+    def __str__(self):
+        """Return string representation."""
+        return '({0.name}={0.value})'.format(self)
+
+    def __eq__(self, other):
+        if isinstance(other, Assignment):
+            return self.name == other.name and self.value == other.value
+        elif isinstance(other, tuple) or isinstance(other, list):
+            if len(other) == 2:
+                return self.name == other[0] and self.value == other[1]
+        else:
+            return NotImplemented
+
+    def __hash__(self):
+        return hash((self.name, self.value))
+
+
 class Node(object):
     """Save a ordered list of parameters, a set of childs, a value and visits.
 
-    Node(parameters=None, save=True)
-        parameters  : ordert list or tuple of parameters
-        save        : save node in NODE_DICT
+    Node(assignment=None, save=True)
+        assginment  : ordert list or tuple of assignments
+        save        : save node in interal storage
 
-    def select_leaf(self):
+    select_leaf(self):
         return a leaf node for evaluation
 
-    def update(self, value):
+    update(self, value):
         update all nodes in path with value (also increase visits)
     """
 
-    __slots__ = ['__parameters', '__childs', '__value', '__visits']
+    __slots__ = ['__assignments', '__childs', '__value', '__visits']
 
     __storage = {}
 
-    def __new__(cls, parameters=None, save=True):
-        if parameters is None:
-            parameters = tuple()
-        node = Node.__storage.get(frozenset(parameters), None)
+    def __new__(cls, assignments=None, save=True):
+        if assignments is None:
+            assignments = tuple()
+        node = Node.__storage.get(frozenset(assignments), None)
         if node is None:
             node = object.__new__(cls)
-            node.__parameters = tuple(parameters)
+            node.__assignments = tuple(assignments)
             node.__childs = None
             node.__value = 0
             node.__visits = 0
             if save:
-                Node.__storage[frozenset(parameters)] = node
+                Node.__storage[frozenset(assignments)] = node
         return node
+
+    @property
+    def assignments(self):
+        """Return value of assignments property."""
+        return self.__assignments
 
     @property
     def childs(self):
@@ -132,7 +180,7 @@ class Node(object):
         self.__visits = visits
 
     @classmethod
-    def clear_nodes(cls):
+    def clear_storage(cls):
         """Clear internal node storage."""
         cls.__storage.clear()
 
@@ -140,6 +188,11 @@ class Node(object):
     def get_nodes(cls):
         """Return all internal stored nodes."""
         return cls.__storage
+
+    @classmethod
+    def node_count(cls):
+        """Return number of stored nodes."""
+        return len(cls.__storage)
 
     def select_leaf(self):
         """Return a leaf node for evaluation."""
@@ -173,11 +226,11 @@ class Node(object):
 
     def parameter_satisfied(self, parameter):
         """Return True if a parameter can be assigned."""
-        if parameter[PARAM_CONDITION] is None:
+        if parameter.condition is None:
             return True
-        for cname, cvalues in parameter[PARAM_CONDITION].items():
+        for cname, cvalues in parameter.condition.items():
             for cvalue in cvalues:
-                if (cname, cvalue) in self:
+                if (cname, cvalue) in self.assignments:
                     break
             else:
                 return False
@@ -185,9 +238,10 @@ class Node(object):
 
     def free_parameters(self):
         """Return a list of free parameters."""
-        assigned_parameters = {param[PARAM_NAME] for param in self}
-        return [param for param in get_parameters()
-                if param[PARAM_NAME] not in assigned_parameters
+        assigned_parameters = {assignment.name for assignment
+                in self.assignments}
+        return [param for param in Parameter.get_parameters()
+                if param.name not in assigned_parameters
                 and self.parameter_satisfied(param)]
 
     def generate_childs(self):
@@ -201,17 +255,17 @@ class Node(object):
         free_parameters = self.free_parameters()
         childs = []
         for parameter in free_parameters:
-            childs += [self.child((parameter[PARAM_NAME], value))
-                    for value in parameter[PARAM_VALUES]]
+            childs += [self.child(Assignment(parameter.name, value))
+                    for value in parameter.values]
         if childs:
             self.__childs = frozenset(childs)
             return random.choice(childs)
         else:
             return self
 
-    def child(self, parameter, save=True):
-        """Return child node for a new assigned parameter."""
-        return Node(list(self) + [parameter], save)
+    def child(self, assignment, save=True):
+        """Return child node for a new assigned assignment."""
+        return Node(list(self.assignments) + [assignment], save)
 
     def random_child(self):
         """Return a random child without creating a new Node."""
@@ -219,8 +273,8 @@ class Node(object):
         if not free_parameters:
             return None
         new_parameter = random.choice(free_parameters)
-        new_value = random.choice(new_parameter[PARAM_VALUES])
-        return self.child((new_parameter[PARAM_NAME], new_value), False)
+        new_value = random.choice(new_parameter.values)
+        return self.child(Assignment(new_parameter.name, new_value), False)
 
     def random_leaf(self):
         """Return random leaf without creating new Nodes."""
@@ -257,3 +311,20 @@ class Node(object):
         return '{0}\n{1} -> {{{2}}}\n{3}'.format(label, name,
                 '; '.join([str(hash(child)) for child in childs]),
                 '\n'.join([child.dot_string(self) for child in childs]))
+
+    def __getitem__(self, index):
+        """Return assignment at index position."""
+        return self.__assignments[index]
+
+    def __iter__(self):
+        """Return iterator over assignments."""
+        return iter(self.__assignments)
+
+    def __len__(self):
+        """Return number of assignments."""
+        return len(self.__assignments)
+
+    def __str__(self):
+        """Return string representation."""
+        return str(self.__assignments)
+

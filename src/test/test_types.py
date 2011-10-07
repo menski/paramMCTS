@@ -15,52 +15,44 @@ class TestNode(unittest.TestCase):
     """Test Node creation and child generation."""
 
     def setUp(self):
-        types.add_parameter('a', (1, 2), None)
-        types.add_parameter('b', ('a', 'b'), {'a': (1, 2)})
-        types.add_parameter('c', (True, False), {'a': [2], 'b': ['a']})
+        types.Parameter('a', (1, 2), None)
+        types.Parameter('b', ('a', 'b'), {'a': (1, 2)})
+        types.Parameter('c', (True, False), {'a': [2], 'b': ['a']})
 
     def tearDown(self):
         types.clear()
 
     def test_node_creation(self):
-        l = len(types.NODE_DICT)
-        self.assertEqual(l, 0)
+        self.assertEqual(types.Node.node_count(), 0)
 
         n = types.Node()
-        l = len(types.NODE_DICT)
-        self.assertEqual(l, 1)
+        self.assertEqual(types.Node.node_count(), 1)
 
         n1 = types.Node([1, 2])
-        l = len(types.NODE_DICT)
-        self.assertEqual(l, 2)
+        self.assertEqual(types.Node.node_count(), 2)
 
         n2 = types.Node((1, 2))
-        l = len(types.NODE_DICT)
-        self.assertEqual(l, 2)
+        self.assertEqual(types.Node.node_count(), 2)
         self.assertEqual(n1, n2)
         self.assertIs(n1, n2)
 
     def test_child_creation(self):
-        l = len(types.NODE_DICT)
-        self.assertEqual(l, 0)
+        self.assertEqual(types.Node.node_count(), 0)
 
         root = types.Node()
         child = root.generate_childs()
-        l = len(types.NODE_DICT)
-        self.assertEqual(l, 3)
-        self.assertEqual(child[0][types.PARAM_NAME], 'a')
+        self.assertEqual(types.Node.node_count(), 3)
+        self.assertEqual(child[0].name, 'a')
 
         rand_child = child.random_child()
-        l = len(types.NODE_DICT)
-        self.assertEqual(l, 3)
-        self.assertEqual(rand_child[1][types.PARAM_NAME], 'b')
+        self.assertEqual(types.Node.node_count(), 3)
+        self.assertEqual(rand_child[1].name, 'b')
 
         child = rand_child.generate_childs()
-        l = len(types.NODE_DICT)
-        if rand_child[0][types.PARAM_VALUES] == 2 and \
-                rand_child[1][types.PARAM_VALUES] == 'a':
+        l = types.Node.node_count()
+        if rand_child[0].value == 2 and rand_child[1].value == 'a':
             self.assertEqual(l, 5)
-            self.assertEqual(child[2][types.PARAM_NAME], 'c')
+            self.assertEqual(child[2].name, 'c')
         else:
             self.assertEqual(l, 3)
             self.assertEqual(child, rand_child)
@@ -69,11 +61,11 @@ class TestNode(unittest.TestCase):
     def test_select_leaf(self):
         root = types.Node()
         leaf = root.select_leaf()
-        self.assertEqual(leaf[types.LEAF_NODE][0][types.PARAM_NAME], "a")
-        self.assertGreater(len(leaf[types.LEAF_PATH]), 1)
+        self.assertEqual(leaf[types.LEAF_NODE][0].name, "a")
+        self.assertGreater(len(leaf[types.LEAF_ASSIGNMENT]), 1)
 
         leaf2 = root.select_leaf()
-        self.assertEqual(leaf2[types.LEAF_NODE][0][types.PARAM_NAME], "a")
+        self.assertEqual(leaf2[types.LEAF_NODE][0].name, "a")
         self.assertNotEqual(leaf, leaf2)
 
     def test_dot(self):
