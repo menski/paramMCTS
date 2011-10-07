@@ -369,3 +369,10 @@ class InstanceSelector(object):
         if self.instances is not None and self.instances:
             return random.choice(self.instances)
         return None
+
+    def random_assignment(self):
+        """Return a random instance variable assignment."""
+        instance = self.random()
+        if instance is None:
+            return None
+        return paramMCTS.types.Assignment(self.__variable, instance)
