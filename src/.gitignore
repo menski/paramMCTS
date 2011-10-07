@@ -3,3 +3,4 @@ __pycache__
 bin/
 run.watcher
 tags
+.ropeproject
