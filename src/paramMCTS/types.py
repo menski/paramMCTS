@@ -49,6 +49,10 @@ class Parameter(object):
             Parameter.__storage[name] = param
         return param
 
+    def __getnewargs__(self):
+        """Return arguments to use for pickle."""
+        return self.name, self.values, self.condition
+
     @property
     def name(self):
         """Return value of name property."""
@@ -76,7 +80,12 @@ class Parameter(object):
     @classmethod
     def get_parameters(cls):
         """Return all internal stored parameters."""
-        return cls.__storage.values()
+        return cls.__storage
+
+    @classmethod
+    def set_parameters(cls, parameters):
+        """Set internal parameter storage."""
+        cls.__storage = parameters
 
     @classmethod
     def parameter_count(self):
@@ -212,6 +221,11 @@ class Node(object):
         return cls.__storage
 
     @classmethod
+    def set_nodes(cls, nodes):
+        """Set internal nodes storage."""
+        cls.__storage = nodes
+
+    @classmethod
     def node_count(cls):
         """Return number of stored nodes."""
         return len(cls.__storage)
@@ -263,7 +277,7 @@ class Node(object):
         """Return a list of free parameters."""
         assigned_parameters = {assignment.name for assignment
                 in self.assignments}
-        return [param for param in Parameter.get_parameters()
+        return [param for param in Parameter.get_parameters().values()
                 if param.name not in assigned_parameters
                 and self.parameter_satisfied(param)]
 

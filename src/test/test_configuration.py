@@ -96,7 +96,7 @@ class TestJsonInput(unittest.TestCase):
         types.clear()
 
     def test_read(self):
-        cfg = configuration.read_hal_json(self.json_file)
+        cfg = configuration.read_hal_json(self.json_file, ['instances/'], None)
         self.assertEqual(types.Parameter.parameter_count(), 34)
 
         p = types.Parameter('backprop')
@@ -110,7 +110,7 @@ class TestJsonInput(unittest.TestCase):
         self.assertDictEqual(p.condition, {'strengthen':
                 frozenset(["bin", "tern", "yes"])})
 
-        self.assertEqual(cfg['instance_variable'], 'instanceFile')
+        self.assertEqual(cfg['instance_selector'].variable, 'instanceFile')
 
         caller = cfg['program_caller']
         self.assertEqual(caller.path, 'bin/clasp')
@@ -118,6 +118,59 @@ class TestJsonInput(unittest.TestCase):
                 r'CPU Time    : (?P<time>\S+)s')
         callstring = caller.callstring
         self.assertDictEqual(callstring.constants, {'num': 1, 'seed': 1})
+
+
+class TestStatePickle(unittest.TestCase):
+    """Test state pickling."""
+
+    def setUp(self):
+        self.filename = 'test.sav'
+        types.Parameter('a', (1, 2), None)
+        types.Parameter('b', (2, 3), None)
+        root = types.Node()
+        root.generate_childs()
+        config = dict()
+        config['root'] = root
+        config['instance_selector'] = configuration.InstanceSelector(
+                ['instances/'], 'instance')
+        config['program_caller'] = configuration.ProgramCaller('bin/clasp',
+                configuration.Callstring('$instance$'))
+        self.config = config
+
+    def test_pickling(self):
+        parameter_count = types.Parameter.parameter_count()
+        node_count = types.Node.node_count()
+        instances_count = len(self.config['instance_selector'].instances)
+        instance_variable = self.config['instance_selector'].variable
+        program_path = self.config['program_caller'].path
+        root = self.config['root']
+
+        configuration.save_state(self.filename, self.config)
+        types.clear()
+        self.assertEqual(types.Parameter.parameter_count(), 0)
+        self.assertEqual(types.Node.node_count(), 0)
+
+        config = configuration.load_state(self.filename)
+        self.assertEqual(types.Parameter.parameter_count(), parameter_count)
+        self.assertEqual(types.Node.node_count(), node_count)
+        self.assertEqual(len(config['instance_selector'].instances),
+                instances_count)
+        self.assertEqual(config['instance_selector'].variable,
+                instance_variable)
+        self.assertEqual(config['program_caller'].path, program_path)
+        self.assertTupleEqual(config['root'].assignments, root.assignments)
+
+        self.filename += '.gz'
+        configuration.save_state(self.filename, config, compress=True)
+        types.clear()
+        config = configuration.load_state(self.filename, master=False)
+        self.assertEqual(types.Parameter.parameter_count(), 0)
+        self.assertEqual(types.Node.node_count(), 0)
+        self.assertFalse('instance_selector' in config)
+        self.assertEqual(config['program_caller'].path, program_path)
+        self.assertFalse('root' in config)
+        self.assertEqual(len(config), 1)
+
 
 
 if __name__ == '__main__':

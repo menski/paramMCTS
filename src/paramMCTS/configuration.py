@@ -32,6 +32,7 @@ import tempfile
 import shlex
 import subprocess
 import json
+import pickle
 
 import paramMCTS.types
 
@@ -66,7 +67,7 @@ def convert_regex(regex):
             r'\$(?P<var>\S+)\$', r'(?P<\g<var>>\S+)', r)) for r in regex])
 
 
-def read_hal_json(filename):
+def read_hal_json(filename, instances, prefix_cmd):
     """Return dictonary with important elements from hal output file."""
     with open(filename, 'r') as fin:
         config = json.load(fin)[0]
@@ -94,17 +95,59 @@ def read_hal_json(filename):
 
     # Read implementation
     # 1. read instance file variable name
-    # 2. create Callstring
-    # 3. create ProgramCaller
+    # 2. create InstanceSelector
+    # 3. create Callstring
+    # 4. create ProgramCaller
     space = config['implementation']
-    result['instance_variable'] = space['instanceSpace']['semantics'][
+    instance_variable = space['instanceSpace']['semantics'][
             'INSTANCE_FILE']
+    result['instance_selector'] = InstanceSelector(instances,
+            instance_variable)
     callstring = Callstring(space['inputFormat']['callstring'][0],
             constants)
     result['program_caller'] = ProgramCaller(space['executable'], callstring,
-            regex=space['outputFormat'])
+            prefix_cmd, regex=space['outputFormat'])
 
     return result
+
+
+def save_state(filename, configuration, compress=True):
+    """Save state to file with optional compression."""
+    try:
+        state = (configuration, paramMCTS.types.Parameter.get_parameters(),
+                paramMCTS.types.Node.get_nodes())
+        open_func = gzip.open if compress else open
+        with open_func(filename, 'wb') as fout:
+            pickle.dump(state, fout, pickle.HIGHEST_PROTOCOL)
+    except (EnvironmentError, pickle.PicklingError) as err:
+        raise SaveError(str(err))
+
+
+def load_state(filename, master=True):
+    """Load state from file with optional reduced information."""
+    try:
+        with open_file(filename) as fin:
+            configuration, parameters, nodes = pickle.load(fin)
+            if master:
+                paramMCTS.types.Parameter.set_parameters(parameters)
+                paramMCTS.types.Node.set_nodes(nodes)
+            else:
+                paramMCTS.types.clear()
+                del configuration['instance_selector']
+                del configuration['root']
+            return configuration
+    except (EnvironmentError, pickle.UnpicklingError) as err:
+        raise LoadError(str(err))
+
+
+class SaveError(Exception):
+    """Exception raised during pickling state."""
+    pass
+
+
+class LoadError(Exception):
+    """Exception raised during unpickling saved state."""
+    pass
 
 
 class ArgumentError(Exception):
