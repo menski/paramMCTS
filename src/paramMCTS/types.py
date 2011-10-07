@@ -8,6 +8,7 @@ functions:
     add_parameter
     get_parameter
     get_parameters
+    get_nodes
 
 classes:
     Node
@@ -22,7 +23,7 @@ PARAM_VALUES = 1
 PARAM_CONDITION = 2
 
 LEAF_NODE = 0
-LEAF_PATH = 1
+LEAF_ASSIGNMENT = 1
 
 PARAM_DICT = dict()
 NODE_DICT = dict()
@@ -32,6 +33,42 @@ UCT_C = math.sqrt(2)
 EPSILON = sys.float_info.epsilon
 
 GRAPH_TEMPLATE = 'digraph "paramMCTS" {{\nnode [shape=box];\n{0}\n}}'
+
+
+class Parameter(object):
+    """A parameter is defined by a name, a tuple of possible values and
+    an optional condition dictonary.
+
+    """
+
+    __storage = {}
+
+    __slots__ = ['__name', '__values', '__condition']
+
+    def __new__(cls, name, values, condition):
+        param = Parameter.__storage.get(name, None)
+        if param is None:
+            param = object.__new__(cls)
+            param.__name = name
+            param.__values = values
+            param.__condition = condition
+            Parameter.__storage[name] = param
+        return param
+
+    @property
+    def name(self):
+        """Return value of name property."""
+        return self.__name
+
+    @property
+    def values(self):
+        """Return value of values property."""
+        return self.__values
+
+    @property
+    def condition(self):
+        """Return value of condition property."""
+        return self.__condition
 
 
 def clear():
@@ -53,6 +90,11 @@ def get_parameter(parameter):
 def get_parameters():
     """Return all parameters."""
     return PARAM_DICT.values()
+
+
+def get_nodes():
+    """Return all nodes."""
+    return NODE_DICT.values()
 
 
 class Node(tuple):
@@ -132,8 +174,9 @@ class Node(tuple):
     def uct(self, parent):
         """Return UCT value for node."""
         visits = self.visits + EPSILON
+        value = parent.value / (parent.visits + EPSILON) - (self.value / visits)
         rand = EPSILON * random.random()
-        return self.value / visits + rand + \
+        return value / visits + rand + \
                 UCT_C * math.sqrt(math.log(parent.visits + 1) / visits)
 
     def parameter_satisfied(self, parameter):
@@ -194,7 +237,7 @@ class Node(tuple):
             last = node
             node = node.random_child()
             if node is None:
-                return tuple(last)
+                return list(last)
 
     def is_leaf(self):
         """Return True if no childs exists."""
@@ -208,14 +251,17 @@ class Node(tuple):
                 fout.write(graph)
         return graph
 
-    def dot_string(self):
+    def dot_string(self, parent=None):
         """Return string in dot language."""
         name = hash(self)
         label = '{0} [label="{1}\\nvalue:{1.value}' \
-                '  visits:{1.visits}"]'.format(name, self)
+                '  visits:{1.visits}  uct:{2:.3f}"]'.format(name, self,
+                        self.uct(parent) if parent is not None else 0.0)
         if self.is_leaf():
             return label
 
+        childs = [child for child in self.childs if child.visits > 0]
+
         return '{0}\n{1} -> {{{2}}}\n{3}'.format(label, name,
-                '; '.join([str(hash(child)) for child in self.childs]),
-                '\n'.join([child.dot_string() for child in self.childs]))
+                '; '.join([str(hash(child)) for child in childs]),
+                '\n'.join([child.dot_string(self) for child in childs]))
