@@ -18,15 +18,8 @@ import math
 import random
 import sys
 
-PARAM_NAME = 0
-PARAM_VALUES = 1
-PARAM_CONDITION = 2
-
 LEAF_NODE = 0
 LEAF_ASSIGNMENT = 1
-
-PARAM_DICT = dict()
-NODE_DICT = dict()
 
 UCT_C = math.sqrt(2)
 
@@ -41,9 +34,9 @@ class Parameter(object):
 
     """
 
-    __storage = {}
-
     __slots__ = ['__name', '__values', '__condition']
+
+    __storage = {}
 
     def __new__(cls, name, values, condition):
         param = Parameter.__storage.get(name, None)
@@ -77,37 +70,11 @@ class Parameter(object):
 
     @classmethod
     def get_parameters(cls):
-        """Return all stored parameters."""
+        """Return all internal stored parameters."""
         return cls.__storage.values()
 
 
-def clear():
-    """Clear state and remove all nodes and parameters."""
-    PARAM_DICT.clear()
-    NODE_DICT.clear()
-
-
-def add_parameter(name, values, condition=None):
-    """Add parameter definition."""
-    PARAM_DICT[name] = (name, tuple(values), condition)
-
-
-def get_parameter(parameter):
-    """Return parameter definition."""
-    return PARAM_DICT[parameter]
-
-
-def get_parameters():
-    """Return all parameters."""
-    return PARAM_DICT.values()
-
-
-def get_nodes():
-    """Return all nodes."""
-    return NODE_DICT.values()
-
-
-class Node(tuple):
+class Node(object):
     """Save a ordered list of parameters, a set of childs, a value and visits.
 
     Node(parameters=None, save=True)
@@ -121,17 +88,22 @@ class Node(tuple):
         update all nodes in path with value (also increase visits)
     """
 
+    __slots__ = ['__parameters', '__childs', '__value', '__visits']
+
+    __storage = {}
+
     def __new__(cls, parameters=None, save=True):
         if parameters is None:
             parameters = tuple()
-        node = NODE_DICT.get(frozenset(parameters), None)
+        node = Node.__storage.get(frozenset(parameters), None)
         if node is None:
-            node = tuple.__new__(cls, parameters)
+            node = object.__new__(cls)
+            node.__parameters = tuple(parameters)
             node.__childs = None
             node.__value = 0
             node.__visits = 0
             if save:
-                NODE_DICT[frozenset(node)] = node
+                Node.__storage[frozenset(parameters)] = node
         return node
 
     @property
@@ -155,9 +127,19 @@ class Node(tuple):
         return self.__visits
 
     @visits.setter
-    def visits(self, value):
+    def visits(self, visits):
         """Set value of visits property."""
-        self.__visits = value
+        self.__visits = visits
+
+    @classmethod
+    def clear_nodes(cls):
+        """Clear internal node storage."""
+        cls.__storage.clear()
+
+    @classmethod
+    def get_nodes(cls):
+        """Return all internal stored nodes."""
+        return cls.__storage
 
     def select_leaf(self):
         """Return a leaf node for evaluation."""
