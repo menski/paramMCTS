@@ -222,6 +222,8 @@ class ProgramCaller(object):
         self.__callstring = callstring
         self.__prefix_cmd = prefix_cmd
         self.__pattern = {'stdout': [], 'stderr': []}
+        self.__process = None
+        self.__childs = None
         if regex is not None:
             for pipe in ('stdout', 'stderr'):
                 if pipe in regex:
@@ -254,6 +256,16 @@ class ProgramCaller(object):
         self.__prefix_cmd = value
 
     @property
+    def process(self):
+        """Return value of process property."""
+        return self.__process
+
+    @property
+    def childs(self):
+        """Return value of childs property."""
+        return self.__childs
+
+    @property
     def pattern(self):
         """Return value of pattern property."""
         return self.__pattern
@@ -273,6 +285,14 @@ class ProgramCaller(object):
         if not os.access(self.__path, os.X_OK):
             raise ExecutableError('File "{0}" is not executable'.format(
                 self.__path))
+
+    def _get_process_childs(self, ppid):
+        """Return list of process childs pid."""
+        try:
+            return subprocess.check_output(shlex.split(
+                'ps -o pid= --ppid {}'.format(ppid))).decode('utf8').split()
+        except subprocess.CalledProcessError:
+            return None
 
     def call(self, assignment, cat=None):
         """Return regex matches from stdout and stderr of called program.
@@ -300,8 +320,11 @@ class ProgramCaller(object):
         args = shlex.split(callstring)
 
         with subprocess.Popen(args, stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE) as proc:
-            (stdout, stderr) = proc.communicate()
+                stderr=subprocess.PIPE) as self.__process:
+            self.__childs = self._get_process_childs(self.process.pid)
+            (stdout, stderr) = self.process.communicate()
+        self.__process = None
+        self.__childs = None
 
         if cat is not None:
             os.remove(assignment[cat])
@@ -315,6 +338,14 @@ class ProgramCaller(object):
             if match:
                 result['stderr'].update(match.groupdict())
         return result
+
+    def kill(self, signum):
+        """Terminate process and kill childs by signum."""
+        if self.childs is not None:
+            for child in self.childs:
+                os.kill(child, signum)
+        if self.process is not None:
+            self.process.terminate()
 
 
 class InstanceSelector(object):
