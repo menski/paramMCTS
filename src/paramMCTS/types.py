@@ -15,9 +15,6 @@ import math
 import random
 import sys
 
-LEAF_NODE = 0
-LEAF_ASSIGNMENT = 1
-
 UCT_C = math.sqrt(2)
 
 EPSILON = sys.float_info.epsilon
@@ -117,6 +114,26 @@ class Assignment(object):
         return hash((self.name, self.value))
 
 
+class Leaf(object):
+    """A leaf saves a existing node from the tree and a full assignment."""
+
+    __slots__ = ['__node', '__assignment']
+
+    def __init__(self, node, assignment):
+        self.__node = node
+        self.__assignment = tuple(assignment)
+
+    @property
+    def node(self):
+        """Return value of node property."""
+        return self.__node
+
+    @property
+    def assignment(self):
+        """Return value of assignment property."""
+        return self.__assignment
+
+
 class Node(object):
     """Save a ordered list of parameters, a set of childs, a value and visits.
 
@@ -200,7 +217,7 @@ class Node(object):
         while not node.is_leaf():
             node = node.select_child()
         child = node.generate_childs()
-        return (child, child.random_leaf())
+        return Leaf(child, child.random_leaf())
 
     def select_child(self):
         """Return best child node."""
@@ -219,7 +236,8 @@ class Node(object):
     def uct(self, parent):
         """Return UCT value for node."""
         visits = self.visits + EPSILON
-        value = parent.value / (parent.visits + EPSILON) - (self.value / visits)
+        value = parent.value / (parent.visits + EPSILON) - \
+                (self.value / visits)
         rand = EPSILON * random.random()
         return value / visits + rand + \
                 UCT_C * math.sqrt(math.log(parent.visits + 1) / visits)
@@ -327,4 +345,3 @@ class Node(object):
     def __str__(self):
         """Return string representation."""
         return str(self.__assignments)
-

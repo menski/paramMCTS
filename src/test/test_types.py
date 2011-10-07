@@ -61,18 +61,18 @@ class TestNode(unittest.TestCase):
     def test_select_leaf(self):
         root = types.Node()
         leaf = root.select_leaf()
-        self.assertEqual(leaf[types.LEAF_NODE][0].name, "a")
-        self.assertGreater(len(leaf[types.LEAF_ASSIGNMENT]), 1)
+        self.assertEqual(leaf.node[0].name, "a")
+        self.assertGreater(len(leaf.assignment), 1)
 
         leaf2 = root.select_leaf()
-        self.assertEqual(leaf2[types.LEAF_NODE][0].name, "a")
+        self.assertEqual(leaf2.node[0].name, "a")
         self.assertNotEqual(leaf, leaf2)
 
     def test_dot(self):
         root = types.Node()
         for i in range(10):
             leaf = root.select_leaf()
-            leaf[types.LEAF_NODE].update(random.randint(1,10))
+            leaf.node.update(random.randint(1,10))
         root.to_dot(filename="test.dot")
         os.system("dot -Teps test.dot -o test.eps")
 
