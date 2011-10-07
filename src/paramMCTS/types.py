@@ -38,12 +38,13 @@ class Parameter(object):
 
     __storage = {}
 
-    def __new__(cls, name, values, condition):
+    def __new__(cls, name, values=None, condition=None):
         param = Parameter.__storage.get(name, None)
         if param is None:
+            assert values is not None, 'new created parameters need values'
             param = object.__new__(cls)
             param.__name = name
-            param.__values = values
+            param.__values = tuple(values)
             param.__condition = condition
             Parameter.__storage[name] = param
         return param
@@ -77,6 +78,10 @@ class Parameter(object):
         """Return all internal stored parameters."""
         return cls.__storage.values()
 
+    @classmethod
+    def parameter_count(self):
+        """Return number of internal saved parameters."""
+        return len(Parameter.__storage)
 
 class Assignment(object):
     """Assignment of a parameter."""

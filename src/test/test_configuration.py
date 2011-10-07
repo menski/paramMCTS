@@ -97,18 +97,17 @@ class TestJsonInput(unittest.TestCase):
 
     def test_read(self):
         cfg = configuration.read_hal_json(self.json_file)
-        l = len(types.get_parameters())
-        self.assertEqual(l, 34)
+        self.assertEqual(types.Parameter.parameter_count(), 34)
 
-        p = types.get_parameter('backprop')
-        self.assertEqual(p[types.PARAM_NAME], 'backprop')
-        self.assertTupleEqual(p[types.PARAM_VALUES], tuple(["yes", "no"]))
-        self.assertIsNone(p[types.PARAM_CONDITION])
+        p = types.Parameter('backprop')
+        self.assertEqual(p.name, 'backprop')
+        self.assertTupleEqual(p.values, tuple(["yes", "no"]))
+        self.assertIsNone(p.condition)
 
-        p = types.get_parameter('recursive-str')
-        self.assertTupleEqual(p[types.PARAM_VALUES], tuple(["yes", "no"]))
-        self.assertIsNotNone(p[types.PARAM_CONDITION])
-        self.assertDictEqual(p[types.PARAM_CONDITION], {'strengthen':
+        p = types.Parameter('recursive-str')
+        self.assertTupleEqual(p.values, tuple(["yes", "no"]))
+        self.assertIsNotNone(p.condition)
+        self.assertDictEqual(p.condition, {'strengthen':
                 frozenset(["bin", "tern", "yes"])})
 
         self.assertEqual(cfg['instance_variable'], 'instanceFile')

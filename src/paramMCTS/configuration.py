@@ -82,7 +82,7 @@ def read_hal_json(filename):
             in space['conditionals'].items()}
 
     for parameter, definition in space["parameters"].items():
-        paramMCTS.types.add_parameter(parameter, definition["items"],
+        paramMCTS.types.Parameter(parameter, definition["items"],
                 conditionals.get(parameter, None))
 
     # Read scenario space
