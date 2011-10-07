@@ -70,6 +70,16 @@ class Parameter(object):
         """Return value of condition property."""
         return self.__condition
 
+    @classmethod
+    def clear_storage(cls):
+        """Clear internal parameter storage."""
+        cls.__storage.clear()
+
+    @classmethod
+    def get_parameters(cls):
+        """Return all stored parameters."""
+        return cls.__storage.values()
+
 
 def clear():
     """Clear state and remove all nodes and parameters."""
