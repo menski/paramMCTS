@@ -88,9 +88,10 @@ class Parameter(object):
         cls.__storage = parameters
 
     @classmethod
-    def parameter_count(self):
+    def parameter_count(cls):
         """Return number of internal saved parameters."""
-        return len(Parameter.__storage)
+        return len(cls.__storage)
+
 
 class Assignment(object):
     """Assignment of a parameter."""
@@ -135,7 +136,7 @@ class Leaf(object):
 
     def __init__(self, node, assignment):
         self.__node = node
-        self.__assignment = tuple(assignment)
+        self.__assignment = list(assignment)
 
     @property
     def node(self):
@@ -146,6 +147,16 @@ class Leaf(object):
     def assignment(self):
         """Return value of assignment property."""
         return self.__assignment
+
+    def assignment_dict(self):
+        """Return assignment as dictonary."""
+        return {assignment.name: assignment.value for assignment in
+                self.assignment}
+
+    def __str__(self):
+        """Return string representation."""
+        return 'Leaf({0} | {1})'.format(str(self.node), [str(a) for a in
+            self.assignment])
 
 
 class Node(object):
@@ -363,4 +374,4 @@ class Node(object):
 
     def __str__(self):
         """Return string representation."""
-        return str(self.__assignments)
+        return str([str(a) for a in self.assignments])
