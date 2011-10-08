@@ -105,8 +105,10 @@ def read_hal_json(filename, instances, prefix_cmd):
             instance_variable)
     callstring = Callstring(space['inputFormat']['callstring'][0],
             constants)
+    output_regex = space['outputFormat']
+    output_regex['stdout'].append('INTERRUPTED : $interrupted$')
     result['program_caller'] = ProgramCaller(space['executable'], callstring,
-            prefix_cmd, regex=space['outputFormat'])
+            prefix_cmd, regex=output_regex)
 
     return result
 
@@ -114,6 +116,9 @@ def read_hal_json(filename, instances, prefix_cmd):
 def save_state(filename, configuration, compress=True):
     """Save state to file with optional compression."""
     try:
+        if not os.path.isdir('save'):
+            os.mkdir('save')
+        filename = os.path.join('save', filename)
         state = (configuration, paramMCTS.types.Parameter.get_parameters(),
                 paramMCTS.types.Node.get_nodes())
         open_func = gzip.open if compress else open
@@ -133,7 +138,6 @@ def load_state(filename, master=True):
                 paramMCTS.types.Node.set_nodes(nodes)
             else:
                 paramMCTS.types.clear()
-                del configuration['instance_selector']
                 del configuration['root']
             return configuration
     except (EnvironmentError, pickle.UnpicklingError) as err:
@@ -332,8 +336,8 @@ class ProgramCaller(object):
     def _get_process_childs(self, ppid):
         """Return list of process childs pid."""
         try:
-            return subprocess.check_output(shlex.split(
-                'ps -o pid= --ppid {}'.format(ppid))).decode('utf8').split()
+            return [int(pid) for pid in subprocess.check_output(shlex.split(
+                'ps -o pid= --ppid {}'.format(ppid))).decode('utf8').split()]
         except subprocess.CalledProcessError:
             return None
 
