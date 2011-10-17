@@ -20,18 +20,17 @@ import signal
 import logging
 import os
 import math
+import collections
 
 import paramMCTS.types
 
 
-TASK_CMD = 0
-TASK_CONTENT = 1
+Task = collections.namedtuple('Task', 'command, content')
+Result = collections.namedtuple('Result', 'node, value')
+
 TASK_STOP = 'stop'
 TASK_PREFIX = 'prefix'
 TASK_RUN = 'run'
-
-RESULT_NODE = 0
-RESULT_VALUE = 1
 
 LOG_LEVEL = logging.DEBUG
 
@@ -72,7 +71,8 @@ class Master(object):
             self._worker = WorkerProcess
 
         self.__destinations = range(1, self.__mpi['size'])
-        self._stop = functools.partial(self.__mpi['comm'].send, (TASK_STOP, ))
+        self._stop = functools.partial(self.__mpi['comm'].send,
+                Task(TASK_STOP, None))
         self.__terminate = threading.Event()
         self.__log = get_logger('master')
         self.__log.debug('master initialized')
@@ -112,7 +112,7 @@ class Master(object):
             leaf = self.__config['root'].select_leaf()
             self.__log.debug('leaf selected: %s', leaf.node)
 
-            self.__task_queue.put((TASK_RUN, leaf))
+            self.__task_queue.put(Task(TASK_RUN, leaf))
             if self.__task_queue.qsize() < task_upper_bound:
                 continue
             while self.__task_queue.qsize() > task_lower_bound and \
@@ -133,11 +133,11 @@ class Master(object):
 
     def _update(self, result):
         """Update MCTS tree with result."""
-        leaf = frozenset(result[RESULT_NODE].assignments)
-        value = result[RESULT_VALUE] if result[RESULT_VALUE] is not None \
+        leaf = frozenset(result.node.assignments)
+        value = result.value if result.value is not None \
                 else self.__penalty * self.__config['timeout']
         self.__log.debug('update nodes for result: %s / %f',
-                result[RESULT_NODE], value)
+                result.node, value)
         amount = 0
         for node in paramMCTS.types.Node.get_nodes().values():
             params = frozenset(node.assignments)
@@ -177,7 +177,7 @@ class Worker(object):
         while True:
             try:
                 task = self.__task_queue.get()
-                assert task[TASK_CMD] == TASK_RUN, 'send only run commands' \
+                assert task.command == TASK_RUN, 'send only run commands' \
                         ' by the worker'
                 self._process(task)
             finally:
@@ -185,7 +185,7 @@ class Worker(object):
 
     def _process(self, task):
         """Send task to executor and process result."""
-        task[TASK_CONTENT].assignment.append(
+        task.content.assignment.append(
                 self.__instance_selector.random_assignment())
         self.__log.debug('send task %s', task)
 
@@ -235,16 +235,15 @@ class Executor(object):
         while True:
             task = self.__queue.get()
             try:
-                if task[TASK_CMD] == TASK_PREFIX:
+                if task.command == TASK_PREFIX:
                     self.__log.debug('received new prefix cmd: %s',
-                            task[TASK_CONTENT])
-                    self.__config['program_caller'].prefix_cmd = \
-                            task[TASK_CONTENT]
+                            task.content)
+                    self.__config['program_caller'].prefix_cmd = task.content
                     continue
-                if task[TASK_CMD] == TASK_RUN:
+                if task.command == TASK_RUN:
                     self.__log.debug('received run cmd for task: %s',
-                            task[TASK_CONTENT])
-                    self._process(task[TASK_CONTENT])
+                            task.content)
+                    self._process(task.content)
             finally:
                 self.__queue.task_done()
 
@@ -252,7 +251,7 @@ class Executor(object):
         """Listen for mpi messages and process them."""
         while True:
             task = self._recv()
-            if task[TASK_CMD] == TASK_STOP:
+            if task.command == TASK_STOP:
                 self.__log.debug('received stop message')
                 os.kill(os.getpid(), signal.SIGTERM)
                 break
@@ -270,7 +269,7 @@ class Executor(object):
             value = float(result['stdout']['time'])
             self.__log.debug('send result (%f) to root',
                     float(result['stdout']['time']))
-        self._send((leaf.node, value))
+        self._send(Result(leaf.node, value))
 
     def _handler(self, signum, stack):
         """Catch signal and kill process and childs."""
