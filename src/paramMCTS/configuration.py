@@ -250,6 +250,9 @@ class Callstring(object):
         else:
             return ''
 
+    def __str__(self):
+        return str(self.callstring)
+
 
 class ProgramCaller(object):
     """Save a program path and executes it with given arguments.
@@ -394,6 +397,11 @@ class ProgramCaller(object):
         if self.process is not None:
             self.process.terminate()
 
+    def __str__(self):
+        return '({} ; {} ; {} | {})'.format(self.prefix_cmd, self.path,
+                self.callstring, {name: [va.pattern for va in value] 
+                    for name, value in self.pattern.items()})
+
 
 class InstanceSelector(object):
     """Choose a instance from a set of paths.
@@ -454,3 +462,6 @@ class InstanceSelector(object):
         if instance is None:
             return None
         return paramMCTS.types.Assignment(self.__variable, instance)
+
+    def __str__(self):
+        return '({}: {})'.format(self.variable, self.instances)

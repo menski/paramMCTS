@@ -53,6 +53,20 @@ class Parameter(object):
         """Return arguments to use for pickle."""
         return self.name, self.values, self.condition
 
+    def __getstate__(self):
+        """Return current state of instance."""
+        state = dict()
+        state['name'] = self.__name
+        state['values'] = self.__values
+        state['condition'] = self.__condition
+        return state
+
+    def __setstate__(self, state):
+        """Set new state of instance."""
+        self.__name = state['name']
+        self.__values = state['values']
+        self.__condition = state['condition']
+
     @property
     def name(self):
         """Return value of name property."""
@@ -102,6 +116,14 @@ class Assignment(object):
         self.__name = name
         self.__value = value
 
+    def __getstate__(self):
+        """Return state of the instance."""
+        return (self.__name, self.__value)
+
+    def __setstate__(self, state):
+        """Set state of the instance."""
+        self.__name, self.__value = state
+
     @property
     def name(self):
         """Return value of name property."""
@@ -112,9 +134,18 @@ class Assignment(object):
         """Return value of value property."""
         return self.__value
 
-    def __str__(self):
-        """Return string representation."""
-        return '({0.name}={0.value})'.format(self)
+    def __eq__(self, other):
+        """Return true if other == self."""
+        if isinstance(other, tuple) or isinstance(other, list):
+            return self.name == other[0] and self.value == other[1]
+        elif isinstance(other, Assignment):
+            return self.name == other.name and self.value == other.value
+        else:
+            return NotImplemented
+
+    def __hash__(self):
+        """Return hash value."""
+        return hash((self.name, self.value))
 
     def __eq__(self, other):
         if isinstance(other, Assignment):
@@ -127,6 +158,10 @@ class Assignment(object):
 
     def __hash__(self):
         return hash((self.name, self.value))
+
+    def __str__(self):
+        return '{}={}'.format(self.__name, self.__value)
+
 
 
 class Leaf(object):
@@ -191,6 +226,26 @@ class Node(object):
                 Node.__storage[frozenset(assignments)] = node
         return node
 
+    def __getnewargs__(self):
+        """Return arguments for __new__ method."""
+        return self.assignments, True
+
+    def __getstate__(self):
+        """Return state of the instance."""
+        state = dict()
+        state['assignments'] = self.assignments
+        state['childs'] = self.childs
+        state['value'] = self.value
+        state['visits'] = self.visits
+        return state
+
+    def __setstate__(self, state):
+        """Set state of the instance."""
+        self.__assignments = state['assignments']
+        self.__childs = state['childs']
+        self.__value = state['value']
+        self.__visits = state['visits']
+
     @property
     def assignments(self):
         """Return value of assignments property."""
@@ -243,15 +298,25 @@ class Node(object):
 
     def select_leaf(self):
         """Return a leaf node for evaluation."""
-        node = self
-        while not node.is_leaf():
-            node = node.select_child()
+        node = self.select_best_leaf(real=False)
         child = node.generate_childs()
         return Leaf(child, child.random_leaf())
 
-    def select_child(self):
+    def select_best_leaf(self, real=True):
+        """Return leaf with best value."""
+        node = self
+        while not node.is_leaf():
+            node = node.select_child(real)
+        return node
+
+    def best_assignment(self):
+        """Return best assignment."""
+        leaf = self.select_best_leaf()
+        return ' '.join([str(a) for a in leaf.assignments])
+
+    def select_child(self, real=False):
         """Return best child node."""
-        return max(self.childs, key=lambda x: x.uct(self))
+        return max(self.childs, key=lambda x: x.uct(self, real))
 
     def update(self, value):
         """Update all nodes in path with value (also increase visits)."""
@@ -263,12 +328,20 @@ class Node(object):
                 break
             node = Node(node[:-1])
 
-    def uct(self, parent):
+    def uct(self, parent, real=False):
         """Return UCT value for node."""
-        visits = self.visits + EPSILON
-        value = parent.value / (parent.visits + EPSILON) - \
-                (self.value / visits)
-        rand = EPSILON * random.random()
+        if real:
+            if self.visits == 0:
+                return 0
+            visits = self.visits
+            value = parent.value / parent.visits - self.value / visits
+            rand = 0
+        else:
+            visits = self.visits + EPSILON
+            value = parent.value / (parent.visits + EPSILON) - \
+                    (self.value / visits)
+            rand = EPSILON * random.random()
+
         return value / visits + rand + \
                 UCT_C * math.sqrt(math.log(parent.visits + 1) / visits)
 
@@ -373,5 +446,5 @@ class Node(object):
         return len(self.__assignments)
 
     def __str__(self):
-        """Return string representation."""
-        return str([str(a) for a in self.assignments])
+        return '({} | visits: {} | value: {:.3f})'.format(
+                [str(a) for a in self.assignments], self.visits, self.value)

@@ -129,6 +129,8 @@ class TestStatePickle(unittest.TestCase):
         types.Parameter('b', (2, 3), None)
         root = types.Node()
         root.generate_childs()
+        root.value += 100
+        root.visits += 1
         config = dict()
         config['root'] = root
         config['instance_selector'] = configuration.InstanceSelector(
@@ -144,13 +146,15 @@ class TestStatePickle(unittest.TestCase):
         instance_variable = self.config['instance_selector'].variable
         program_path = self.config['program_caller'].path
         root = self.config['root']
+        root_value = self.config['root'].value
+        root_visits = self.config['root'].visits
 
         configuration.save_state(self.filename, self.config)
         types.clear()
         self.assertEqual(types.Parameter.parameter_count(), 0)
         self.assertEqual(types.Node.node_count(), 0)
 
-        config = configuration.load_state(self.filename)
+        config = configuration.load_state('save/' + self.filename)
         self.assertEqual(types.Parameter.parameter_count(), parameter_count)
         self.assertEqual(types.Node.node_count(), node_count)
         self.assertEqual(len(config['instance_selector'].instances),
@@ -159,17 +163,21 @@ class TestStatePickle(unittest.TestCase):
                 instance_variable)
         self.assertEqual(config['program_caller'].path, program_path)
         self.assertTupleEqual(config['root'].assignments, root.assignments)
+        self.assertGreater(len(config['root'].childs), 0)
+        self.assertEqual(config['root'].value, root_value)
+        self.assertEqual(config['root'].visits, root_visits)
 
         self.filename += '.gz'
         configuration.save_state(self.filename, config, compress=True)
         types.clear()
-        config = configuration.load_state(self.filename, master=False)
+        config = configuration.load_state('save/' + self.filename,
+                master=False)
         self.assertEqual(types.Parameter.parameter_count(), 0)
         self.assertEqual(types.Node.node_count(), 0)
-        self.assertFalse('instance_selector' in config)
+        self.assertTrue('instance_selector' in config)
         self.assertEqual(config['program_caller'].path, program_path)
         self.assertFalse('root' in config)
-        self.assertEqual(len(config), 1)
+        self.assertEqual(len(config), 2)
 
 
 
